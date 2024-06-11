@@ -1,14 +1,17 @@
 class GameSession {
     generateGameCode() {}
     startGame() {}
+    startTimer() {}
     updateHighScores(playerId, score) {}
     addPlayer(playerId) {}
     removePlayer(playerId) {}
+    isStarted(){}
 }
 
 class Game extends GameSession {
     constructor(roomId, io) {
         super()
+        this.started = false
         this.roomId = roomId
         this.io = io
         this.players = []
@@ -18,6 +21,10 @@ class Game extends GameSession {
     }
 
     startGame() {
+        this.started = true;
+    }
+
+    startTimer() {
         clearInterval(this.timer)
         this.timeRemaining = 60 // Reset timer to 60 seconds for a new game
         this.timer = setInterval(() => {
@@ -57,7 +64,11 @@ class Game extends GameSession {
 
     removePlayer(playerId) {
         this.players = this.players.filter(id => id !== playerId)
-        this.highScores = this.highScores.filter(p => p.id !== playerId)
+        //this.highScores = this.highScores.filter(p => p.id !== playerId)
+    }
+
+    isStarted(){
+        return this.started
     }
 }
 

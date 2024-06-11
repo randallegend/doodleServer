@@ -28,7 +28,14 @@ io.use((socket, next) => {
 
 // Socket.IO connection handler
 io.on('connection', (socket) => {
+    socket.join(socket.username)
     console.log('A user connected with username:', socket.username)
+
+    socket.on('startGame', (gameCode) => {
+        games[gameCode].startGame()
+        console.log('Game started:', gameCode)
+        io.to(gameCode).emit('startGame', gameCode)
+    })
 
     socket.on('hostGame', (data, ackCallback) => {
         const gameCode = generateGameCode()
@@ -37,36 +44,57 @@ io.on('connection', (socket) => {
         socket.join(gameCode)
         console.log(`Game created with code: ${gameCode}`)
         games[gameCode].addPlayer(socket.username)
+
         ackCallback(gameCode)
     })
 
     socket.on('joinGame', (gameCode, ackCallback) => {
-        if(games[gameCode]) {
+        if(games[gameCode] && !games[gameCode].isStarted()) {
             socket.join(gameCode)
             games[gameCode].addPlayer(socket.username)
             socket.broadcast.to(gameCode).emit('playerJoined', socket.username)
-            console.log(games[gameCode].getPlayers())
+
             ackCallback({status: 'success', players: games[gameCode].getPlayers()})
         }
         else{
-            ackCallback({status: 'error', message:`Game room ${gameCode} doesn't exist`})
+            ackCallback({status: 'error', message:`Game room ${gameCode} doesn't exist or already started`})
         }
     })
 
-    socket.on('drawing', (data) => {
+    socket.on('leaveGame', (gameCode, ackCallback) => {
+        if(games[gameCode]){
+            socket.broadcast.to(gameCode).emit('playerLeft', socket.username)
+            socket.leave(gameCode)
+            games[gameCode].removePlayer(socket.username)
+            
+            ackCallback()
+        } 
+    })
+
+    socket.on('hostLeave', (gameCode, ackCallback) => {
+        if(games[gameCode]){
+            socket.broadcast.to(gameCode).emit('hostLeft', socket.username)
+            socket.leave(gameCode)
+            delete games[gameCode]
+            
+            ackCallback()
+        } 
+    })
+
+    socket.on('drawing', (gameCode, data) => {
         console.log('Touch event received:', data)
         // You can handle the data here, such as broadcasting to other clients
-        socket.broadcast.emit('drawing', data)
+        socket.broadcast.to(gameCode).emit('drawing', data)
     })
 
-    socket.on('changeColor', (data) => {
+    socket.on('changeColor', (gameCode, data) => {
         console.log('Changed color to:', data)
-        socket.broadcast.emit('changeColor', data)
+        socket.broadcast.to(gameCode).emit('changeColor', data)
     })
 
-    socket.on('eraseDrawing', (data) => {
+    socket.on('eraseDrawing', (gameCode, data) => {
         console.log('erase drawing:', data)
-        socket.broadcast.emit('eraseDrawing', data)
+        socket.broadcast.to(gameCode).emit('eraseDrawing', data)
     })
 
     socket.on('disconnect', () => {
