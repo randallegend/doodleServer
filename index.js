@@ -2,7 +2,7 @@ import express from 'express'
 import {createServer} from 'http'
 import {Server} from 'socket.io'
 import Game from './gameSession.js'
-import { stat } from 'fs'
+
 
 const app = express()
 const server = createServer(app)
@@ -25,16 +25,28 @@ io.use((socket, next) => {
     }
 });
 
-
+const delay = ms => new Promise(res => setTimeout(res, ms));
 // Socket.IO connection handler
 io.on('connection', (socket) => {
     socket.join(socket.username)
     console.log('A user connected with username:', socket.username)
 
-    socket.on('startGame', (gameCode) => {
-        games[gameCode].startGame()
-        console.log('Game started:', gameCode)
-        io.to(gameCode).emit('startGame', gameCode)
+    socket.on('startGame', async (gameCode)=> {
+        if(!games[gameCode].isStarted()){
+            games[gameCode].readyCount++
+
+            //start game if all players are ready
+            if(games[gameCode].readyCount == games[gameCode].getPlayers().length){
+                console.log('Game started:', gameCode)
+                games[gameCode].startGame()
+            }
+        }
+    })
+
+
+    socket.on('hostStart', (gameCode, ackCallback) => {
+        socket.broadcast.to(gameCode).emit('hostStarted', gameCode)
+        ackCallback(gameCode)
     })
 
     socket.on('hostGame', (data, ackCallback) => {
@@ -79,6 +91,15 @@ io.on('connection', (socket) => {
             
             ackCallback()
         } 
+    })
+
+    socket.on('pickWord', (gameCode, selectedWord, ackCallback) => {
+        games[gameCode].currWord = selectedWord
+        socket.broadcast.to(gameCode).emit('startGuess', selectedWord, socket.username)
+        
+        //start round timer
+        games[gameCode].startTimer()
+        ackCallback(selectedWord)
     })
 
     socket.on('drawing', (gameCode, data) => {

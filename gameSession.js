@@ -1,9 +1,14 @@
+import EasyToDrawWords from "./randomwords.js"
+const words = new EasyToDrawWords()
+
 class GameSession {
-    generateGameCode() {}
     startGame() {}
+    startRound(){}
+    promptWord(){}
     startTimer() {}
     updateHighScores(playerId, score) {}
     addPlayer(playerId) {}
+    getPlayers(){}
     removePlayer(playerId) {}
     isStarted(){}
 }
@@ -15,13 +20,30 @@ class Game extends GameSession {
         this.roomId = roomId
         this.io = io
         this.players = []
+        this.currPlayer = 0
+        this.currWord = ''
         this.highScores = []
         this.timer = null
-        this.timeRemaining = 60 // Example duration in seconds
+        this.round = 0
+        this.timeRemaining = 60 
+        this.readyCount = 0// Example duration in seconds
     }
 
     startGame() {
-        this.started = true;
+        this.started = true
+        this.startRound()
+    }
+
+    startRound() { 
+        this.round++
+        this.promptWord() 
+    }
+
+    promptWord() {
+        const pick = words.generateWords(2)
+        const player = this.players[this.currPlayer] //get current player
+        this.io.to(player).emit('pickWord', pick) //prompt the current player
+        this.io.to(this.roomId).emit('pickingWord', player) //notify all players
     }
 
     startTimer() {
