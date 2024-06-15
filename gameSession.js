@@ -1,4 +1,4 @@
-import EasyToDrawWords from "./randomwords.js"
+import EasyToDrawWords from "./randomWords.js"
 const words = new EasyToDrawWords()
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
