@@ -22,6 +22,7 @@ class Game {
         this.highScores = []
         
         this.readyCount = 0
+        this.doodleFinished = false
     }
 
     startGame() {
@@ -36,6 +37,7 @@ class Game {
     }
 
     startDoodle() {
+        this.doodleFinished = false
         this.currWord = ''
         this.correctGuess = 0
         const pick = words.generateWords(2)
@@ -45,6 +47,7 @@ class Game {
     }
 
     async endDoodle() {
+        this.doodleFinished = true
         clearInterval(this.timer)
         this.updateHighScore(this.players[this.currPlayer], this.calculateDrawingPoints())
         this.io.to(this.roomId).emit('endDoodle', this.highScores, this.currWord)

@@ -94,6 +94,7 @@ io.on('connection', (socket) => {
 
     socket.on('guessWord', (gameCode, guess, ackCallback) => {
         const game = games[gameCode]
+        if(game.doodleFinished) return
         if(game.isCorrect(guess)) {
             const points = game.calculateGuessingPoints()
             game.updateHighScore(socket.username, points)
