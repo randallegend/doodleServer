@@ -23,9 +23,8 @@ io.use((socket, next) => {
     } else {
         next(new Error('Authentication error'))
     }
-});
+})
 
-const delay = ms => new Promise(res => setTimeout(res, ms));
 // Socket.IO connection handler
 io.on('connection', (socket) => {
     socket.join(socket.username)
@@ -93,6 +92,24 @@ io.on('connection', (socket) => {
         } 
     })
 
+    socket.on('guessWord', (gameCode, guess, ackCallback) => {
+        const game = games[gameCode]
+        if(game.isCorrect(guess)) {
+            const points = game.calculateGuessingPoints()
+            game.updateHighScore(socket.username, points)
+
+            game.correctGuess++
+            io.to(gameCode).emit('playerCorrect', socket.username)
+            if(game.correctGuess == game.players.length - 1) game.endDoodle()
+        }
+        else {
+            ackCallback()
+            if(game.isGuessClose(guess))
+                io.to(socket.username).emit('guessClose', guess)
+            socket.broadcast.to(gameCode).emit('playerGuessed', guess, socket.username)
+        }
+    })
+
     socket.on('pickWord', (gameCode, selectedWord, ackCallback) => {
         games[gameCode].currWord = selectedWord
         socket.broadcast.to(gameCode).emit('startGuess', selectedWord, socket.username)
@@ -125,7 +142,7 @@ io.on('connection', (socket) => {
 
 
 function generateGameCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     let code = ''
     for (let i = 0; i < 4; i++) {
         const randomIndex = Math.floor(Math.random() * chars.length)
