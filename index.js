@@ -9,6 +9,8 @@ const server = createServer(app)
 const io = new Server(server)
 const games = {}
 
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
 // Define a route if necessary
 app.get('/', (req, res) => {
     res.send('Server is running')
@@ -36,6 +38,7 @@ io.on('connection', (socket) => {
 
             //start game if all players are ready
             if(games[gameCode].readyCount == games[gameCode].getPlayers().length){
+                await delay(3000)
                 console.log('Game started:', gameCode)
                 games[gameCode].startGame()
             }
